@@ -97,13 +97,10 @@ class PClass(CheckedType):
         if args:
             kwargs[args[0]] = args[1]
 
-        for key in self._pclass_fields:
-            if key not in kwargs:
-                value = getattr(self, key, _MISSING_VALUE)
-                if value is not _MISSING_VALUE:
-                    kwargs[key] = value
-
-        return self.__class__(**kwargs)
+        e = self.evolver()
+        for key, value in kwargs.iteritems():
+            e.set(key, value)
+        return e.persistent()
 
     @classmethod
     def create(cls, kwargs):
@@ -223,7 +220,29 @@ class _PClassEvolver(object):
         return self._pclass_evolver_data[item]
 
     def set(self, key, value):
-        if self._pclass_evolver_data.get(key, _MISSING_VALUE) is not value:
+        update = False
+
+        current_value = self._pclass_evolver_data.get(key, _MISSING_VALUE)
+        try:
+            if hash(current_value) == hash(value) and current_value == value:
+                # Assume that if the value is hashable then it is immutable. If
+                # the value is the same for an immutable object, then we do not
+                # need to update.
+                update = False
+            else:
+                # Otherwise if there is a hash mismatch or the values are not
+                # the same the key needs to be updated.
+                update = True
+        except TypeError:
+            # Assume that the type error indicates that the value is mutable.
+            # In this case, the only time we do not need to update is if
+            # current_value is the same object as value.
+            if current_value is value:
+                update = False
+            else:
+                update = True
+
+        if update:
             self._pclass_evolver_data[key] = value
             self._pclass_evolver_data_is_dirty = True
 
