@@ -98,7 +98,7 @@ class PClass(CheckedType):
             kwargs[args[0]] = args[1]
 
         e = self.evolver()
-        for key, value in kwargs.iteritems():
+        for key, value in six.iteritems(kwargs):
             e.set(key, value)
         return e.persistent()
 
