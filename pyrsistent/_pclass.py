@@ -97,13 +97,10 @@ class PClass(CheckedType):
         if args:
             kwargs[args[0]] = args[1]
 
-        for key in self._pclass_fields:
-            if key not in kwargs:
-                value = getattr(self, key, _MISSING_VALUE)
-                if value is not _MISSING_VALUE:
-                    kwargs[key] = value
-
-        return self.__class__(**kwargs)
+        e = self.evolver()
+        for key, value in six.iteritems(kwargs):
+            e.set(key, value)
+        return e.persistent()
 
     @classmethod
     def create(cls, kwargs):
@@ -223,10 +220,26 @@ class _PClassEvolver(object):
         return self._pclass_evolver_data[item]
 
     def set(self, key, value):
-        if self._pclass_evolver_data.get(key, _MISSING_VALUE) is not value:
-            self._pclass_evolver_data[key] = value
-            self._pclass_evolver_data_is_dirty = True
+        current_value = self._pclass_evolver_data.get(key, _MISSING_VALUE)
 
+        try:
+            hash(current_value)
+            hash(value)
+        except:
+            # Assume that the error indicates that the value is mutable.  As an
+            # optimization, we can return an unmodified self if both objects
+            # are the same.
+            if current_value is value:
+                return self
+        else:
+            # Assume that the lack of an error when we hashed the objects
+            # indicates that they both are immutable.  As an optimization, we
+            # can return an unmodified self if both objects are equal.
+            if current_value == value:
+                return self
+
+        self._pclass_evolver_data[key] = value
+        self._pclass_evolver_data_is_dirty = True
         return self
 
     def __setitem__(self, key, value):

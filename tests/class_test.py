@@ -279,6 +279,31 @@ def test_cannot_remove_non_existing_member():
         p1.remove('y')
 
 
+def test_set_equal_basic_types_returns_original_instance():
+    p1 = Point(x=1)
+
+    assert p1.set('x', 1) is p1
+    assert p1.set(x=1) is p1
+
+
+def test_set_equal_pyrsistent_types_returns_original_instance():
+    l1 = Line(p1=Point(x=2, y=1), p2=Point(x=20, y=10))
+
+    assert l1.set(p1=Point(x=2, y=1)) is l1
+
+
+def test_set_mutable_types_only_returns_original_if_exact_object():
+    class MyClass(PClass):
+        a = field()
+
+    d1 = dict(x=1)
+    c1 = MyClass(a=d1)
+    c1_clone = c1.set(a=d1)
+    c1_equivalent = c1.set(a=dict(x=1))
+    assert c1_clone is c1
+    assert c1_equivalent is not c1
+
+
 def test_evolver_without_evolution_returns_original_instance():
     p1 = Point(x=1)
     e = p1.evolver()
