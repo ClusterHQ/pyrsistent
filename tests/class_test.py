@@ -298,8 +298,10 @@ def test_set_mutable_types_only_returns_original_if_exact_object():
 
     d1 = dict(x=1)
     c1 = MyClass(a=d1)
-    assert c1.set(a=d1) is c1
-    assert c1.set(a=dict(x=1)) is not c1
+    c1_clone = c1.set(a=d1)
+    c1_equivalent = c1.set(a=dict(x=1))
+    assert c1_clone is c1
+    assert c1_equivalent is not c1
 
 
 def test_evolver_without_evolution_returns_original_instance():
