@@ -223,23 +223,28 @@ class _PClassEvolver(object):
         update = False
 
         current_value = self._pclass_evolver_data.get(key, _MISSING_VALUE)
+
         try:
-            if hash(current_value) == hash(value) and current_value == value:
-                # Assume that if the value is hashable then it is immutable. If
-                # the value is the same for an immutable object, then we do not
-                # need to update.
-                update = False
-            else:
-                # Otherwise if there is a hash mismatch or the values are not
-                # the same the key needs to be updated.
-                update = True
-        except TypeError:
-            # Assume that the type error indicates that the value is mutable.
-            # In this case, the only time we do not need to update is if
+            current_value_hash = hash(current_value)
+            value_hash = hash(value)
+        except:
+            # Assume that the error indicates that the value is mutable.  In
+            # this case, the only time we do not need to update is if
             # current_value is the same object as value.
             if current_value is value:
                 update = False
             else:
+                update = True
+        else:
+            # Assume that the lack of an error when we hashed the objects
+            # indicates that they both are immutable.
+            if current_value_hash == value_hash and current_value == value:
+                # If the value is the same for an immutable object, then we do
+                # not need to update.
+                update = False
+            else:
+                # Otherwise if there is a hash mismatch or the values are not
+                # the same the key needs to be updated.
                 update = True
 
         if update:
