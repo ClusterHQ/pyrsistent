@@ -220,37 +220,26 @@ class _PClassEvolver(object):
         return self._pclass_evolver_data[item]
 
     def set(self, key, value):
-        update = False
-
         current_value = self._pclass_evolver_data.get(key, _MISSING_VALUE)
 
         try:
-            current_value_hash = hash(current_value)
-            value_hash = hash(value)
+            hash(current_value)
+            hash(value)
         except:
-            # Assume that the error indicates that the value is mutable.  In
-            # this case, the only time we do not need to update is if
-            # current_value is the same object as value.
+            # Assume that the error indicates that the value is mutable.  As an
+            # optimization, we can return an unmodified self if both objects
+            # are the same.
             if current_value is value:
-                update = False
-            else:
-                update = True
+                return self
         else:
             # Assume that the lack of an error when we hashed the objects
-            # indicates that they both are immutable.
-            if current_value_hash == value_hash and current_value == value:
-                # If the value is the same for an immutable object, then we do
-                # not need to update.
-                update = False
-            else:
-                # Otherwise if there is a hash mismatch or the values are not
-                # the same the key needs to be updated.
-                update = True
+            # indicates that they both are immutable.  As an optimization, we
+            # can return an unmodified self if both objects are equal.
+            if current_value == value:
+                return self
 
-        if update:
-            self._pclass_evolver_data[key] = value
-            self._pclass_evolver_data_is_dirty = True
-
+        self._pclass_evolver_data[key] = value
+        self._pclass_evolver_data_is_dirty = True
         return self
 
     def __setitem__(self, key, value):
