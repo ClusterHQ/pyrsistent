@@ -421,16 +421,36 @@ def test_supports_weakref():
     weakref.ref(m(a=1))
 
 
-class TerriblePatchedPMap(PMap):
+class NonIterablePMap(PMap):
+    def __iter__(self):
+        assert False
+
+    def itervalues(self):
+        assert False
+
+    def values(self):
+        assert False
+
+    def iterkeys(self):
+        assert False
+
+    def keys(self):
+        assert False
+
+    def iteritems(self):
+        assert False
+
     def items(self):
         assert False
 
 
 def test_identity_equal_quick():
-    # It might be slow to recursively call __eq__ on all keys and values.
-    # Instead, for maps that are the same object, __eq__ should have a fast
-    # path that does not call __eq__.
-    m1 = TerriblePatchedPMap(0, [])
+    # It might be slow (O(n)) to iterate over all items in a PMap during
+    # comparison. If the maps happen to be the exact same object, there should
+    # be a quick path that does not require iterating over the PMap.
+
+    # Subclass used because PMaps use slots making them un-patchable.
+    m1 = NonIterablePMap(0, [])
     m2 = m1
     assert m1 == m2
 
