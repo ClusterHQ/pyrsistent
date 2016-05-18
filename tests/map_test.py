@@ -470,7 +470,8 @@ def test_differing_hash_quick_nonequal():
     # It might be slow to recursively call __eq__ on all keys and values.
     # Instead, for maps that are composed of hashable (presumably immutable)
     # objects with different hashes, __eq__ should have a fast path that does
-    # not call __eq__.
+    # not call __eq__ on the objects in the PMap, instead relying on the hash,
+    # which is hopefully faster to compute, and possibly already cached.
     im1 = NonEquatableImmutableHash(1)
     im2 = NonEquatableImmutableHash(2)
     m1 = pmap({im1: im1})
