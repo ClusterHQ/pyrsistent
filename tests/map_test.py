@@ -455,15 +455,18 @@ def test_identity_equal_quick():
     assert m1 == m2
 
 
-class NonEquatableImmutableHash(object):
+class EquatablityControlledImmutableHash(object):
     def __init__(self, hash_value):
         self._hash = hash_value
+        self.equatable = True
 
     def __hash__(self):
         return self._hash
 
     def __eq__(self, other):
-        raise ValueError('Cannot equate this object.')
+        if not self.equatable:
+            raise ValueError('Cannot equate this object.')
+        return self._hash == other._hash
 
 
 def test_differing_hash_quick_nonequal():
@@ -472,10 +475,16 @@ def test_differing_hash_quick_nonequal():
     # objects with different hashes, __eq__ should have a fast path that does
     # not call __eq__ on the objects in the PMap, instead relying on the hash,
     # which is hopefully faster to compute, and possibly already cached.
-    im1 = NonEquatableImmutableHash(1)
-    im2 = NonEquatableImmutableHash(2)
+    im1 = EquatablityControlledImmutableHash(1)
+    im2 = EquatablityControlledImmutableHash(2)
     m1 = pmap({im1: im1})
     m2 = pmap({im1: im2})
     m3 = pmap({im2: im1})
+    # Call hash on all of the pmaps to populate their cache
+    hash(m1)
+    hash(m2)
+    hash(m3)
+    im1.equatable = False
+    im2.equatable = False
     assert m1 != m2
     assert m1 != m3

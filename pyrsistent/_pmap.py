@@ -136,8 +136,9 @@ class PMap(object):
         else:
             if self_hash != other_hash:
                 return False
-        return Mapping.__eq__(self, other)
+        return self._mapping_eq(other)
 
+    _mapping_eq = Mapping.__eq__
     __ne__ = Mapping.__ne__
 
     def __lt__(self, other):
