@@ -128,6 +128,14 @@ class PMap(object):
     def __eq__(self, other):
         if self is other:
             return True
+        try:
+            self_hash = hash(self)
+            other_hash = hash(other)
+        except:
+            pass
+        else:
+            if self_hash != other_hash:
+                return False
         return Mapping.__eq__(self, other)
 
     __ne__ = Mapping.__ne__
