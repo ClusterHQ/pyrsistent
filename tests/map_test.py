@@ -1,7 +1,7 @@
 from collections import Mapping, Hashable
 from operator import add
 import pytest
-from pyrsistent import pmap, m, PVector
+from pyrsistent import pmap, m, PVector, PMap
 import pickle
 
 def test_instance_of_hashable():
@@ -419,3 +419,42 @@ def test_pmap_unorderable():
 def test_supports_weakref():
     import weakref
     weakref.ref(m(a=1))
+
+
+class TerriblePatchedPMap(PMap):
+    def items(self):
+        assert False
+
+
+def test_identity_equal_quick():
+    # It might be slow to recursively call __eq__ on all keys and values.
+    # Instead, for maps that are the same object, __eq__ should have a fast
+    # path that does not call __eq__.
+    m1 = TerriblePatchedPMap(0, [])
+    m2 = m1
+    assert m1 == m2
+
+
+class NonEquatableImmutableHash(object):
+    def __init__(self, hash_value):
+        self._hash = hash_value
+
+    def __hash__(self):
+        return self._hash
+
+    def __eq__(self, other):
+        raise ValueError('Cannot equate this object.')
+
+
+def test_differing_hash_quick_nonequal():
+    # It might be slow to recursively call __eq__ on all keys and values.
+    # Instead, for maps that are composed of hashable (presumably immutable)
+    # objects with different hashes, __eq__ should have a fast path that does
+    # not call __eq__.
+    im1 = NonEquatableImmutableHash(1)
+    im2 = NonEquatableImmutableHash(2)
+    m1 = pmap({im1: im1})
+    m2 = pmap({im1: im2})
+    m3 = pmap({im2: im1})
+    assert m1 != m2
+    assert m1 != m3

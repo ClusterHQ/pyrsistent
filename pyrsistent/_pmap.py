@@ -125,6 +125,11 @@ class PMap(object):
     def __repr__(self):
         return 'pmap({0})'.format(str(dict(self)))
 
+    #def __eq__(self, other):
+    #    if self is other:
+    #        return True
+    #    return Mapping.__eq__(self, other)
+
     __eq__ = Mapping.__eq__
     __ne__ = Mapping.__ne__
 
