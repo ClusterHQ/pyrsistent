@@ -1,7 +1,7 @@
 from collections import Mapping, Hashable
 from operator import add
 import pytest
-from pyrsistent import pmap, m, PVector
+from pyrsistent import pmap, m, PVector, PMap
 import pickle
 
 def test_instance_of_hashable():
@@ -419,3 +419,76 @@ def test_pmap_unorderable():
 def test_supports_weakref():
     import weakref
     weakref.ref(m(a=1))
+
+
+class NonIterablePMap(PMap):
+    def __iter__(self):
+        assert False
+
+    def itervalues(self):
+        assert False
+
+    def values(self):
+        assert False
+
+    def iterkeys(self):
+        assert False
+
+    def keys(self):
+        assert False
+
+    def iteritems(self):
+        assert False
+
+    def items(self):
+        assert False
+
+
+def test_identity_equal_quick():
+    # It might be slow (O(n)) to iterate over all items in a PMap during
+    # comparison. If the maps happen to be the exact same object, there should
+    # be a quick path that does not require iterating over the PMap.
+
+    # Subclass used because PMaps use slots making them un-patchable.
+
+    # Constructing a PMap directly requires passing in the number of elements
+    # and the buckets the PMap uses to store its values. For simplicity, just
+    # use an empty PMap.
+    m1 = NonIterablePMap(0, [])
+    m2 = m1
+    assert m1 == m2
+
+
+class EquatablityControlledImmutableHash(object):
+    def __init__(self, hash_value):
+        self._hash = hash_value
+        self.equatable = True
+
+    def __hash__(self):
+        return self._hash
+
+    def __eq__(self, other):
+        if not self.equatable:
+            raise ValueError('Cannot equate this object.')
+        return self._hash == other._hash
+
+
+def test_differing_hash_quick_nonequal():
+    # It might be slow to recursively call __eq__ on all keys and values.
+    # Instead, for maps that are composed of hashable (presumably immutable)
+    # objects with different hashes, __eq__ should have a fast path that does
+    # not call __eq__ on the objects in the PMap, instead relying on the hash,
+    # which is hopefully faster to compute, and possibly already cached.
+    im1 = EquatablityControlledImmutableHash(1)
+    im2 = EquatablityControlledImmutableHash(2)
+    m1 = pmap({im1: im1})
+    m2 = pmap({im1: im2})
+    m3 = pmap({im2: im1})
+    # Call hash on all of the pmaps to populate their cache
+    hash(m1)
+    hash(m2)
+    hash(m3)
+    im1.equatable = False
+    im2.equatable = False
+    assert m1 != m2
+    assert m1 != m3
