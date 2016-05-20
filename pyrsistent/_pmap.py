@@ -131,7 +131,7 @@ class PMap(object):
         try:
             self_hash = hash(self)
             other_hash = hash(other)
-        except:
+        except TypeError:
             pass
         else:
             if self_hash != other_hash:

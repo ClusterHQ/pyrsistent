@@ -450,6 +450,10 @@ def test_identity_equal_quick():
     # be a quick path that does not require iterating over the PMap.
 
     # Subclass used because PMaps use slots making them un-patchable.
+
+    # Constructing a PMap directly requires passing in the number of elements
+    # and the buckets the PMap uses to store its values. For simplicity, just
+    # use an empty PMap.
     m1 = NonIterablePMap(0, [])
     m2 = m1
     assert m1 == m2
