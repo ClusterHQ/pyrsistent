@@ -5,6 +5,9 @@ from pyrsistent._pvector import pvector
 from pyrsistent._transformations import transform
 
 
+_NO_VALUE_SENTINEL = object()
+
+
 class PMap(object):
     """
     Persistent map/dict. Tries to follow the same naming conventions as the built in dict where feasible.
@@ -307,6 +310,44 @@ class PMap(object):
             else:
                 self._buckets_evolver[index] = [kv]
                 self._size += 1
+
+            return self
+
+        def batchset(self, keyvals):
+            num_buckets = len(self._buckets_evolver)
+            while num_buckets < 0.67 * (self._size + len(keyvals) - 1):
+                num_buckets = 2 * num_buckets
+            if num_buckets != len(self._buckets_evolver):
+                self._reallocate(num_buckets)
+
+            index_buckets = (PMap._get_bucket(self._buckets_evolver, key)
+                             for key, _ in keyvals)
+
+            bucket_additions = {}
+            for key, value in keyvals:
+                index, _ = PMap._get_bucket(self._buckets_evolver, key)
+                if index in bucket_additions:
+                    bucket_additions[index][key] = value
+                else:
+                    bucket_additions[index] = {key: value}
+
+            for index, kvs in bucket_additions.iteritems():
+                bucket = self._buckets_evolver[index]
+                if bucket:
+                    old_bucket_length = len(bucket)
+                    for k, v in bucket:
+                        val = kvs.get(k, _NO_VALUE_SENTINEL)
+                        if v is val:
+                            del kvs[k]
+                    if kvs:
+                        new_bucket = list(kvs.iteritems())
+                        old_bucket_items = [(k2, v2) for k2, v2 in bucket if k2 not in kvs]
+                        new_bucket.extend(old_bucket_items)
+                        self._buckets_evolver[index] = new_bucket
+                        self._size += len(new_bucket) - old_bucket_length
+                else:
+                    self._buckets_evolver[index] = list(kvs.iteritems())
+                    self._size += len(kvs)
 
             return self
 

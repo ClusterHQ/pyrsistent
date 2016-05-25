@@ -3,6 +3,7 @@ import six
 from pyrsistent._pmap import PMap, pmap
 from pyrsistent._pset import PSet, pset
 from pyrsistent._pvector import PythonPVector, python_pvector
+import itertools
 
 
 class CheckedType(object):
@@ -306,8 +307,7 @@ class CheckedPSet(PSet, CheckedType):
             return super(CheckedPSet, cls).__new__(cls, initial)
 
         evolver = CheckedPSet.Evolver(cls, pset())
-        for e in initial:
-            evolver.add(e)
+        evolver.batch_add(initial)
 
         return evolver.persistent()
 
@@ -346,6 +346,11 @@ class CheckedPSet(PSet, CheckedType):
         def add(self, element):
             self._check([element])
             self._pmap_evolver[element] = True
+            return self
+
+        def batch_add(self, elements):
+            self._check(elements)
+            self._pmap_evolver.batchset(zip(elements, itertools.repeat(True)))
             return self
 
         def persistent(self):
