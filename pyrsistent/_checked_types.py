@@ -344,13 +344,12 @@ class CheckedPSet(PSet, CheckedType):
             self._invariant_errors.extend(error_data)
 
         def add(self, element):
-            self._check([element])
-            self._pmap_evolver[element] = True
-            return self
+            return self.batch_add([element])
 
         def batch_add(self, elements):
+            elements = list(elements)
             self._check(elements)
-            self._pmap_evolver.batchset(zip(elements, itertools.repeat(True)))
+            self._pmap_evolver.batch_set(zip(elements, itertools.repeat(True)))
             return self
 
         def persistent(self):

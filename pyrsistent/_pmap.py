@@ -289,39 +289,14 @@ class PMap(object):
             self.set(key, val)
 
         def set(self, key, val):
-            if len(self._buckets_evolver) < 0.67 * self._size:
-                self._reallocate(2 * len(self._buckets_evolver))
+            return self.batch_set([(key, val)])
 
-            kv = (key, val)
-            index, bucket = PMap._get_bucket(self._buckets_evolver, key)
-            if bucket:
-                for k, v in bucket:
-                    if k == key:
-                        if v is not val:
-                            new_bucket = [(k2, v2) if k2 != k else (k2, val) for k2, v2 in bucket]
-                            self._buckets_evolver[index] = new_bucket
-
-                        return self
-
-                new_bucket = [kv]
-                new_bucket.extend(bucket)
-                self._buckets_evolver[index] = new_bucket
-                self._size += 1
-            else:
-                self._buckets_evolver[index] = [kv]
-                self._size += 1
-
-            return self
-
-        def batchset(self, keyvals):
+        def batch_set(self, keyvals):
             num_buckets = len(self._buckets_evolver)
             while num_buckets < 0.67 * (self._size + len(keyvals) - 1):
                 num_buckets = 2 * num_buckets
             if num_buckets != len(self._buckets_evolver):
                 self._reallocate(num_buckets)
-
-            index_buckets = (PMap._get_bucket(self._buckets_evolver, key)
-                             for key, _ in keyvals)
 
             bucket_additions = {}
             for key, value in keyvals:
@@ -335,19 +310,38 @@ class PMap(object):
                 bucket = self._buckets_evolver[index]
                 if bucket:
                     old_bucket_length = len(bucket)
+
+                    # First remove all changes that are NoOps:
                     for k, v in bucket:
                         val = kvs.get(k, _NO_VALUE_SENTINEL)
                         if v is val:
                             del kvs[k]
+
+                    # Then only update if there remain to be changes:
                     if kvs:
-                        new_bucket = list(kvs.iteritems())
-                        old_bucket_items = [(k2, v2) for k2, v2 in bucket if k2 not in kvs]
-                        new_bucket.extend(old_bucket_items)
+                        changed_old_bucket = []
+
+                        # Don't change the order of keys that are already in the bucket.
+                        for k2, v2 in bucket:
+                            newv = kvs.get(k2, _NO_VALUE_SENTINEL)
+                            if newv is _NO_VALUE_SENTINEL:
+                                changed_old_bucket.append((k2, v2))
+                            else:
+                                changed_old_bucket.append((k2, newv))
+                                del kvs[k2]
+
+                        # Prepend new tuples
+                        if kvs:
+                            new_bucket = list(kvs.iteritems())
+                            new_bucket.extend(changed_old_bucket)
+                        else:
+                            new_bucket = changed_old_bucket
                         self._buckets_evolver[index] = new_bucket
                         self._size += len(new_bucket) - old_bucket_length
                 else:
-                    self._buckets_evolver[index] = list(kvs.iteritems())
-                    self._size += len(kvs)
+                    new_bucket = list(kvs.iteritems())
+                    self._buckets_evolver[index] = new_bucket
+                    self._size += len(new_bucket)
 
             return self
 

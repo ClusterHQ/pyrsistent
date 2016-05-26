@@ -76,7 +76,7 @@ class IntToFloatSetMap(CheckedPMap):
 def test_multi_level_serialization():
     x = IntToFloatSetMap.create({1: [1.25, 1.50], 2: [2.5, 2.75]})
 
-    assert str(x) == "IntToFloatSetMap({1: FloatSet([1.5, 1.25]), 2: FloatSet([2.75, 2.5])})"
+    assert str(x) == "IntToFloatSetMap({1: FloatSet([1.25, 1.5]), 2: FloatSet([2.5, 2.75])})"
 
     sx = x.serialize()
     assert sx == {1: set([1.5, 1.25]), 2: set([2.75, 2.5])}
