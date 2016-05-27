@@ -1,5 +1,6 @@
 import pickle
 import pytest
+from itertools import repeat
 from pyrsistent import CheckedPSet, PSet, InvariantException, CheckedType, CheckedPVector, CheckedValueTypeError
 
 
@@ -79,7 +80,13 @@ def test_pickling():
     assert x == y
     assert isinstance(y, Naturals)
 
-
 def test_supports_weakref():
     import weakref
     weakref.ref(Naturals([1, 2]))
+
+def test_reasonable_number_of_buckets():
+    initialization_arg = list(repeat(55, 10000))
+    reference = frozenset(initialization_arg)
+    test_object = Naturals(initialization_arg)
+    assert reference == test_object
+    assert len(test_object._map._buckets) < len(test_object)*10
