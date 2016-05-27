@@ -349,7 +349,7 @@ class CheckedPSet(PSet, CheckedType):
         def batch_add(self, elements):
             elements = list(elements)
             self._check(elements)
-            self._pmap_evolver.batch_set(zip(elements, repeat(True)))
+            self._pmap_evolver.batch_set(list(zip(elements, repeat(True))))
             return self
 
         def persistent(self):

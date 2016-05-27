@@ -306,7 +306,7 @@ class PMap(object):
                 else:
                     bucket_additions[index] = {key: value}
 
-            for index, kvs in bucket_additions.iteritems():
+            for index, kvs in six.iteritems(bucket_additions):
                 bucket = self._buckets_evolver[index]
                 if bucket:
                     old_bucket_length = len(bucket)
@@ -332,14 +332,14 @@ class PMap(object):
 
                         # Prepend new tuples
                         if kvs:
-                            new_bucket = list(kvs.iteritems())
+                            new_bucket = list(six.iteritems(kvs))
                             new_bucket.extend(changed_old_bucket)
                         else:
                             new_bucket = changed_old_bucket
                         self._buckets_evolver[index] = new_bucket
                         self._size += len(new_bucket) - old_bucket_length
                 else:
-                    new_bucket = list(kvs.iteritems())
+                    new_bucket = list(six.iteritems(kvs))
                     self._buckets_evolver[index] = new_bucket
                     self._size += len(new_bucket)
 
