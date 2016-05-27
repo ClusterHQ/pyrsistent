@@ -291,15 +291,15 @@ class PMap(object):
         def set(self, key, val):
             return self.batch_set([(key, val)])
 
-        def batch_set(self, keyvals):
+        def batch_set(self, new_keyvals_mapping):
             num_buckets = len(self._buckets_evolver)
-            while num_buckets < 0.67 * (self._size + len(keyvals) - 1):
+            while num_buckets < 0.67 * (self._size + len(new_keyvals_mapping) - 1):
                 num_buckets = 2 * num_buckets
             if num_buckets != len(self._buckets_evolver):
                 self._reallocate(num_buckets)
 
             bucket_additions = {}
-            for key, value in keyvals:
+            for key, value in six.iteritems(new_keyvals_mapping):
                 index, _ = PMap._get_bucket(self._buckets_evolver, key)
                 if index in bucket_additions:
                     bucket_additions[index][key] = value
