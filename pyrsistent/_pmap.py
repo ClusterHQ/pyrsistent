@@ -289,9 +289,11 @@ class PMap(object):
             self.set(key, val)
 
         def set(self, key, val):
-            return self.batch_set([(key, val)])
+            return self.update({key: val})
 
-        def batch_set(self, new_keyvals_mapping):
+        def update(self, *args, **kwargs):
+            new_keyvals_mapping = dict()
+            new_keyvals_mapping.update(*args, **kwargs)
             num_buckets = len(self._buckets_evolver)
             while num_buckets < 0.67 * (self._size + len(new_keyvals_mapping) - 1):
                 num_buckets = 2 * num_buckets

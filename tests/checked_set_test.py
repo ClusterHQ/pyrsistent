@@ -72,6 +72,7 @@ def test_create():
 def test_evolver_returns_same_instance_when_no_updates():
     x = Naturals([1, 2])
     assert x.evolver().persistent() is x
+    assert x.evolver().add(1).update([1, 2]).persistent() is x
 
 def test_pickling():
     x = Naturals([1, 2])
@@ -90,3 +91,17 @@ def test_reasonable_number_of_buckets():
     test_object = Naturals(initialization_arg)
     assert reference == test_object
     assert len(test_object._map._buckets) < len(test_object)*10
+
+def test_evolver_update():
+    update_arg = list(repeat(55, 10000)) + [9, 10 , 11]
+    reference = set([5, 4, 3])
+    test_object = Naturals(reference)
+    assert reference == test_object
+
+    evolver = test_object.evolver()
+    reference.update(update_arg)
+    evolver.update(update_arg)
+    reference.update((999,))
+    evolver.update((999,))
+    test_object_2 = evolver.persistent()
+    assert test_object_2 == reference

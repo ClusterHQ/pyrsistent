@@ -307,7 +307,7 @@ class CheckedPSet(PSet, CheckedType):
             return super(CheckedPSet, cls).__new__(cls, initial)
 
         evolver = CheckedPSet.Evolver(cls, pset())
-        evolver.batch_add(initial)
+        evolver.update(initial)
 
         return evolver.persistent()
 
@@ -344,12 +344,12 @@ class CheckedPSet(PSet, CheckedType):
             self._invariant_errors.extend(error_data)
 
         def add(self, element):
-            return self.batch_add([element])
+            return self.update([element])
 
-        def batch_add(self, elements):
-            elements = list(elements)
+        def update(self, elements):
+            elements = frozenset(elements)
             self._check(elements)
-            self._pmap_evolver.batch_set(dict(zip(elements, repeat(True))))
+            self._pmap_evolver.update(dict(zip(elements, repeat(True))))
             return self
 
         def persistent(self):
