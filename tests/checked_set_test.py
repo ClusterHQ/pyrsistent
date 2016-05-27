@@ -89,14 +89,14 @@ def test_reasonable_number_of_buckets():
     initialization_arg = list(repeat(55, 10000))
     reference = frozenset(initialization_arg)
     test_object = Naturals(initialization_arg)
-    assert reference == test_object
+    assert reference == frozenset(test_object)
     assert len(test_object._map._buckets) < len(test_object)*10
 
 def test_evolver_update():
     update_arg = list(repeat(55, 10000)) + [9, 10 , 11]
     reference = set([5, 4, 3])
     test_object = Naturals(reference)
-    assert reference == test_object
+    assert reference == frozenset(test_object)
 
     evolver = test_object.evolver()
     reference.update(update_arg)
@@ -104,4 +104,4 @@ def test_evolver_update():
     reference.update((999,))
     evolver.update((999,))
     test_object_2 = evolver.persistent()
-    assert test_object_2 == reference
+    assert frozenset(test_object_2) == reference
