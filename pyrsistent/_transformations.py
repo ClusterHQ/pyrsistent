@@ -50,7 +50,6 @@ def immutably_equivalent(a, b):
     """
     if a is b:
         return True
-    return False
     try:
         hash(a)
         hash(b)
