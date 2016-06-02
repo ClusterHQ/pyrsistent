@@ -2,7 +2,7 @@ from collections import Mapping, Hashable
 from itertools import chain
 import six
 from pyrsistent._pvector import pvector
-from pyrsistent._transformations import transform
+from pyrsistent._transformations import transform, immutably_equivalent
 
 
 class PMap(object):
@@ -294,7 +294,7 @@ class PMap(object):
             if bucket:
                 for k, v in bucket:
                     if k == key:
-                        if v is not val:
+                        if not immutably_equivalent(v,  val):
                             new_bucket = [(k2, v2) if k2 != k else (k2, val) for k2, v2 in bucket]
                             self._buckets_evolver[index] = new_bucket
 
