@@ -421,6 +421,12 @@ def test_supports_weakref():
     weakref.ref(m(a=1))
 
 
+def test_set_equal_same_object():
+    make_subobj = lambda: freeze({'foo': [1, 2, 3]})
+    m1 = m(foo=make_subobj())
+    assert m1.set('foo', make_subobj()) is m
+
+
 class NonIterablePMap(PMap):
     def __iter__(self):
         assert False

@@ -80,3 +80,9 @@ def test_multiple_transformations():
 def test_no_transformation_returns_the_same_structure():
     v = freeze([{'foo': 1}, {'bar': 2}])
     assert v.transform([ny, ny], lambda x: x) is v
+
+
+def test_replace_subobject_returns_the_same_structure():
+    make_subobj = lambda *_: freeze({'foo': [1, 2, 3]})
+    m = freeze({'foo': make_subobj()})
+    assert m.transform(['foo'], make_subobj) is m
