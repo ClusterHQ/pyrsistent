@@ -1,7 +1,7 @@
 import six
 from pyrsistent._checked_types import (InvariantException, CheckedType, _restore_pickle, store_invariants)
 from pyrsistent._field_common import (set_fields, check_type, PFIELD_NO_INITIAL, serialize, check_global_invariants)
-from pyrsistent._transformations import transform
+from pyrsistent._transformations import transform, immutably_equivalent
 
 
 def _is_pclass(bases):
@@ -222,21 +222,8 @@ class _PClassEvolver(object):
     def set(self, key, value):
         current_value = self._pclass_evolver_data.get(key, _MISSING_VALUE)
 
-        try:
-            hash(current_value)
-            hash(value)
-        except:
-            # Assume that the error indicates that the value is mutable.  As an
-            # optimization, we can return an unmodified self if both objects
-            # are the same.
-            if current_value is value:
-                return self
-        else:
-            # Assume that the lack of an error when we hashed the objects
-            # indicates that they both are immutable.  As an optimization, we
-            # can return an unmodified self if both objects are equal.
-            if current_value == value:
-                return self
+        if immutably_equivalent(current_value, value):
+            return True
 
         self._pclass_evolver_data[key] = value
         self._pclass_evolver_data_is_dirty = True

@@ -2,7 +2,7 @@ from collections import Mapping, Hashable
 from itertools import chain
 import six
 from pyrsistent._pvector import pvector
-from pyrsistent._transformations import transform
+from pyrsistent._transformations import transform, immutably_equivalent
 
 
 _NO_VALUE_SENTINEL = object()
@@ -315,9 +315,9 @@ class PMap(object):
 
                     # First remove all changes that are NoOps:
                     for k, v in bucket:
-                        val = kvs.get(k, _NO_VALUE_SENTINEL)
-                        if v is val:
-                            del kvs[k]
+                        if k in kvs:
+                            if immutably_equivalent(v, kvs[k]):
+                                del kvs[k]
 
                     # Then only update if there remain to be changes:
                     if kvs:
@@ -326,9 +326,15 @@ class PMap(object):
                         # Don't change the order of keys that are already in the bucket.
                         for k2, v2 in bucket:
                             newv = kvs.get(k2, _NO_VALUE_SENTINEL)
-                            if newv is _NO_VALUE_SENTINEL:
+                            if newv is _NO_VALUE_SENTINEL or immutably_equivalent(newv, v2):
+                                # The old key is not being updated either
+                                # because it is not present in the updates or
+                                # because the new value is equivalent.
+                                # Copy the existing value from the old bucket.
                                 changed_old_bucket.append((k2, v2))
                             else:
+                                # The old key is among the updates and the
+                                # value *is* different.
                                 changed_old_bucket.append((k2, newv))
                                 del kvs[k2]
 

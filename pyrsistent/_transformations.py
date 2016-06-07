@@ -37,6 +37,28 @@ def _chunks(l, n):
         yield l[i:i + n]
 
 
+def immutably_equivalent(a, b):
+    """
+    Returns whether the arguments are immutably equivalent. This means two
+    different things:
+
+    - If both a and b are hashable, then they both represent immutable values.
+      In this case, returning if a == b should reflect that the objects are
+      equal, and they will always be equal.
+    - If either a or b are not hashable, then they will only be equal in the
+      immutable sense if they refer to the exact same object.
+    """
+    if a is b:
+        return True
+    try:
+        hash(a)
+        hash(b)
+    except TypeError:
+        return False
+    else:
+        return a == b
+
+
 def transform(structure, transformations):
     r = structure
     for path, command in _chunks(transformations, 2):
@@ -86,6 +108,6 @@ def _update_structure(structure, kvs, path, command):
             discard(e, k)
         else:
             result = _do_to_path(v, path, command)
-            if result is not v:
+            if not immutably_equivalent(result, v):
                 e[k] = result
     return e.persistent()
