@@ -1,7 +1,7 @@
 from collections import Mapping, Hashable
 from operator import add
 import pytest
-from pyrsistent import pmap, m, PVector, PMap
+from pyrsistent import pmap, m, PVector, PMap, thaw
 import pickle
 
 def test_instance_of_hashable():
@@ -377,6 +377,23 @@ def test_evolver_remove_element():
 
     del e['a']
     assert 'a' not in e
+
+
+def test_evolver_update():
+    base = m(a=12, b=44, c=u'cat')
+    def validate_update(*args, **kwargs):
+        ref = thaw(base)
+        e = base.evolver()
+        ref.update(*args, **kwargs)
+        e.update(*args, **kwargs)
+        assert e.persistent() == ref
+
+    validate_update()
+    validate_update(b=0)
+    validate_update([('b', 0), ('newkey', 111)])
+    validate_update([('b', 0), ('newkey', 111), ('b', 555)])
+    validate_update([('a', 999)], a=12345)
+    validate_update(('ab',))
 
 
 def test_evolver_remove_element_not_present():

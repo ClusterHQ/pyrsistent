@@ -1,5 +1,6 @@
 import pickle
 import pytest
+from itertools import repeat
 from pyrsistent import CheckedPSet, PSet, InvariantException, CheckedType, CheckedPVector, CheckedValueTypeError
 
 
@@ -71,6 +72,7 @@ def test_create():
 def test_evolver_returns_same_instance_when_no_updates():
     x = Naturals([1, 2])
     assert x.evolver().persistent() is x
+    assert x.evolver().add(1).update([1, 2]).persistent() is x
 
 def test_pickling():
     x = Naturals([1, 2])
@@ -79,7 +81,27 @@ def test_pickling():
     assert x == y
     assert isinstance(y, Naturals)
 
-
 def test_supports_weakref():
     import weakref
     weakref.ref(Naturals([1, 2]))
+
+def test_reasonable_number_of_buckets():
+    initialization_arg = list(repeat(55, 10000))
+    reference = frozenset(initialization_arg)
+    test_object = Naturals(initialization_arg)
+    assert reference == frozenset(test_object)
+    assert len(test_object._map._buckets) < len(test_object)*10
+
+def test_evolver_update():
+    update_arg = list(repeat(55, 10000)) + [9, 10, 11]
+    reference = set([5, 4, 3])
+    test_object = Naturals(reference)
+    assert reference == frozenset(test_object)
+
+    evolver = test_object.evolver()
+    reference.update(update_arg)
+    evolver.update(update_arg)
+    reference.update((999,))
+    evolver.update((999,))
+    test_object_2 = evolver.persistent()
+    assert frozenset(test_object_2) == reference

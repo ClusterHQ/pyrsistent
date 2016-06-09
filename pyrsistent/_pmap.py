@@ -5,6 +5,9 @@ from pyrsistent._pvector import pvector
 from pyrsistent._transformations import transform, immutably_equivalent
 
 
+_NO_VALUE_SENTINEL = object()
+
+
 class PMap(object):
     """
     Persistent map/dict. Tries to follow the same naming conventions as the built in dict where feasible.
@@ -286,27 +289,67 @@ class PMap(object):
             self.set(key, val)
 
         def set(self, key, val):
-            if len(self._buckets_evolver) < 0.67 * self._size:
-                self._reallocate(2 * len(self._buckets_evolver))
+            return self.update({key: val})
 
-            kv = (key, val)
-            index, bucket = PMap._get_bucket(self._buckets_evolver, key)
-            if bucket:
-                for k, v in bucket:
-                    if k == key:
-                        if not immutably_equivalent(v,  val):
-                            new_bucket = [(k2, v2) if k2 != k else (k2, val) for k2, v2 in bucket]
-                            self._buckets_evolver[index] = new_bucket
+        def update(self, *args, **kwargs):
+            new_keyvals_mapping = dict()
+            new_keyvals_mapping.update(*args, **kwargs)
+            num_buckets = len(self._buckets_evolver)
+            while num_buckets < 0.67 * (self._size + len(new_keyvals_mapping) - 1):
+                num_buckets = 2 * num_buckets
+            if num_buckets != len(self._buckets_evolver):
+                self._reallocate(num_buckets)
 
-                        return self
+            bucket_additions = {}
+            for key, value in six.iteritems(new_keyvals_mapping):
+                index, _ = PMap._get_bucket(self._buckets_evolver, key)
+                if index in bucket_additions:
+                    bucket_additions[index][key] = value
+                else:
+                    bucket_additions[index] = {key: value}
 
-                new_bucket = [kv]
-                new_bucket.extend(bucket)
-                self._buckets_evolver[index] = new_bucket
-                self._size += 1
-            else:
-                self._buckets_evolver[index] = [kv]
-                self._size += 1
+            for index, kvs in six.iteritems(bucket_additions):
+                bucket = self._buckets_evolver[index]
+                if bucket:
+                    old_bucket_length = len(bucket)
+
+                    # First remove all changes that are NoOps:
+                    for k, v in bucket:
+                        if k in kvs:
+                            if immutably_equivalent(v, kvs[k]):
+                                del kvs[k]
+
+                    # Then only update if there remain to be changes:
+                    if kvs:
+                        changed_old_bucket = []
+
+                        # Don't change the order of keys that are already in the bucket.
+                        for k2, v2 in bucket:
+                            newv = kvs.get(k2, _NO_VALUE_SENTINEL)
+                            if newv is _NO_VALUE_SENTINEL or immutably_equivalent(newv, v2):
+                                # The old key is not being updated either
+                                # because it is not present in the updates or
+                                # because the new value is equivalent.
+                                # Copy the existing value from the old bucket.
+                                changed_old_bucket.append((k2, v2))
+                            else:
+                                # The old key is among the updates and the
+                                # value *is* different.
+                                changed_old_bucket.append((k2, newv))
+                                del kvs[k2]
+
+                        # Prepend new tuples
+                        if kvs:
+                            new_bucket = list(six.iteritems(kvs))
+                            new_bucket.extend(changed_old_bucket)
+                        else:
+                            new_bucket = changed_old_bucket
+                        self._buckets_evolver[index] = new_bucket
+                        self._size += len(new_bucket) - old_bucket_length
+                else:
+                    new_bucket = list(six.iteritems(kvs))
+                    self._buckets_evolver[index] = new_bucket
+                    self._size += len(new_bucket)
 
             return self
 
